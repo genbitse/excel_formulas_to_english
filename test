@@ -1,0 +1,111 @@
+#!/usr/bin/env python
+
+__author__ = "Martin Rydén"
+__copyright__ = "Copyright 2016, Martin Rydén"
+__license__ = "MIT"
+__version__ = "1.0.1"
+__email__ = "pemryd@gmail.com"
+
+import re
+import requests
+from bs4 import BeautifulSoup
+import os
+
+os.chdir("C:/Users/Martin/Desktop/")
+
+# Input Excel formula
+formula = input("\nFunction: ")
+
+# Split by and keep any non-alphanumeric delimiter, filter blanks
+#dlformula = list(filter(None, re.split('([^\\w.])', formula)))
+dlformula = list(filter(None, re.split('([^\\w.])', formula)))
+
+# List of functions
+functions = []
+
+with open('excel_functions.txt') as f:
+    lines = f.read().splitlines()
+    for fc in dlformula:
+        for f in lines:
+            if(fc == f):
+                functions.append(fc)
+
+# =INDEX(A1:Z10,MATCH("product",A1:A10,0),MATCH("month",A1:Z1,0))
+
+# Set regex pattern: any alpha-numeric characters
+pattern = re.compile('([\w":]+)',re.I)
+#wc = [(pattern.sub("*", f)) for f in nfunction if f not in const]
+
+print(re1_matches)
+
+wc = []
+
+for f in dlformula:
+    if f in functions:
+        wc.append(f)
+    else:
+        a = pattern.sub("*", f)
+        wc.append(a)
+
+wcfunction = ''.join(wc)
+
+print(wcfunction)
+
+
+
+"""
+for fc in spfunction:
+    for f in all_functions:
+        if(fc == f):
+            print(fc)
+    
+
+
+# Find all tables in selected languages
+url = "http://www.piuha.fi/excel-function-name-translation/index.php?page=%s-%s.html" % (avail_lang[langf][0], avail_lang[langt][1])
+r = requests.get(url)
+soup = BeautifulSoup(r.content, "html.parser")
+
+# Create dict and enumerate over table values
+tdict = dict((i,t) for i,t in enumerate(soup.find_all('td'))) 
+
+# Get rid of '=' for now
+function = function.replace('=','')
+
+# Split by and keep any non-alphanumeric delimiter (except .)
+# the full string including delimters is added at the end
+spfunction = re.split('([^\\w.])', function)
+
+# Split by and remove delimiters, filter out empty elements
+function = list(filter(None, re.split(r'[\W]+', function)))
+
+# Only keep elements longer than 2 chars, in order to limit matching
+function = [f for f in function if len(f) > 2]
+
+# Iterate over table values, function parts
+# Add original and translated values to dict
+trdict = {}
+#for i, t in tdict.items():
+for i, t in tdict.items():
+    for x in function:
+         if(str(x) in str(t.getText())):
+              if(langf == "en"):
+                   if(t.getText() not in trdict.keys()): # Prevent duplicates
+                       fr = (tdict[i+1].getText().split(','))[0]
+                       to = (t.getText().split(','))[0]
+                       trdict[to] = fr # If translating from English, set key to English
+              else: 
+                   fr = (t.getText().split(','))[0]
+                   to = (tdict[i+1].getText().split(','))[0]
+                   trdict[fr] = to # If translating from non-English, set key to non-English
+
+
+new = [trdict.get(x,x) for x in spfunction] # Get translated value from dict
+
+if(langf != "en"):
+     new = '=' + ''.join(new).replace(';',',')
+elif(langf == "en"):
+     new = '=' + ''.join(new).replace(',',';')
+
+print("\n%s"%new)
+"""
