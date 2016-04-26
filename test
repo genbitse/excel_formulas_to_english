@@ -9,16 +9,16 @@ __email__ = "pemryd@gmail.com"
 import re
 import requests
 from bs4 import BeautifulSoup
-import os
-
-os.chdir("C:/Users/Martin/Desktop/")
+from GoogleScraper import scrape_with_config, GoogleSearchError
+import collections
 
 # Input Excel formula
-formula = input("\nFunction: ")
+#formula = input("\nFunction: ")
+formula = '=INDEX(A1:Z10,MATCH("product",A1:A10,0),MATCH("month",A1:Z1,0))'
 
 # Split by and keep any non-alphanumeric delimiter, filter blanks
-#dlformula = list(filter(None, re.split('([^\\w.])', formula)))
-dlformula = list(filter(None, re.split('([^\\w.])', formula)))
+dlformula = list(filter(None, re.split('([^\\w.\"\:])', formula)))
+
 
 # List of functions
 functions = []
@@ -33,27 +33,130 @@ with open('excel_functions.txt') as f:
 # =INDEX(A1:Z10,MATCH("product",A1:A10,0),MATCH("month",A1:Z1,0))
 
 # Set regex pattern: any alpha-numeric characters
-pattern = re.compile('([\w":]+)',re.I)
+pattern = re.compile('([\w\.\"\:]+)',re.I)
 #wc = [(pattern.sub("*", f)) for f in nfunction if f not in const]
 
-print(re1_matches)
+#print(re1_matches)
 
 wc = []
+tfunction = []
 
 for f in dlformula:
     if f in functions:
         wc.append(f)
+        tfunction.append(f)
     else:
         a = pattern.sub("*", f)
         wc.append(a)
 
-wcfunction = ''.join(wc)
+wcf = ''.join(wc)+"*"
 
-print(wcfunction)
+print(wcf)
 
+"""
+### Test ###
+
+tempurl = "http://www.deskbright.com/excel/using-index-match-match/"
+
+tm = '=INDEX(B2:D7, MATCH(G2, B2:B7, 0), MATCH(G3, B2:D2, 0)Output: 456'
+
+###########
+
+
+r = requests.get(tempurl)
+soup = BeautifulSoup(r.content, "html.parser")
+
+matches = collections.defaultdict(int)
+
+def find_elements(el):    
+    for p in (soup.find_all(el)):
+        if(all(x in p.getText() for x in tfunction)):
+            matches[el] += 1 
+            #print(p.getText())
+
+elements = ['pre', 'p', 'ul']         
+for e in elements:
+    find_elements(e)
+"""
+
+#### Scrape google for top hits ####
+
+config = {
+    'use_own_ip': 'True',
+    'keyword': ("%s excel formula -youtube") % wcf,
+    'search_engines': ['google'],
+    'num_pages_for_keyword': 1,
+    'scrape_method': 'http',
+    'do_caching': 'True',
+    'print_results': 'summarize'
+}
+
+urls = [] # List of result URLs
+
+try:
+    search = scrape_with_config(config)
+except GoogleSearchError as e:
+    pass
+
+# Results
+
+for serp in search.serps:
+    for link in serp.links:
+        urls.append(link.link)
+        
+#### Parse into BS4 ####
+
+
+
+ranking = collections.defaultdict(dict)
+sub = collections.defaultdict(dict)
+
+def find_elements(el):    
+        for p in (soup.find_all(el)):
+            if(all(x in p.getText() for x in tfunction)):
+                matches[el] += 1
+                #print(p.getText())
+
+webid = 0
+
+for url in urls:
+    webid += 1
+    matches = collections.defaultdict(int)    
+    
+    r = requests.get(url)
+    soup = BeautifulSoup(r.content, "html.parser")
+    elements = ['pre', 'p', 'ul']         
+    for e in elements:
+        find_elements(e)
+    
+    try:
+        stitle = soup.title.string
+    except:
+        stitle = "No title"
+ 
+    print('\nFound matches in "%s".\n \
+    URL: %s' % (stitle,url))
+    
+    ranking[webid] = #(matches.items(),url)
+    
+    #for k,v in matches.items():
+    #    print(k,v)
+    
+for x in ranking.values():
+    try:
+        for k,v in x.items():
+            print(k,v)        
+    except:
+        pass
+
+
+####
 
 
 """
+
+### TEMP TEMP TEMP TEMP
+
 for fc in spfunction:
     for f in all_functions:
         if(fc == f):
