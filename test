@@ -90,7 +90,7 @@ for serp in search.serps:
 ranking = collections.defaultdict(dict)
 
 # Web elements to look for
-elements = ['pre', 'p', 'ul']
+elements = ['pre', 'p', 'ul', 'td']
 
 # Searches a web page for an element, stores matches in dict
 def find_elements(element):
@@ -175,12 +175,13 @@ print('\n')
 def get_data(url):
     r = requests.get(url)
     soup = BeautifulSoup(r.content, "html.parser") # Parses the page
- #   for element in elements:
-    for p in (soup.find_all('ul')):
-        if(all(x in p.getText() for x in tfunction)):
-            print(p.getText())
+    for element in elements:
+        for p in (soup.find_all('body')):
+            if(all(x in p.getText() for x in tfunction)):
+                print(p.findPrevious('p').contents[0])
+                print(p.getText())
+#                print(p.findNext().contents[0])
             
-    
 get_data(tophiturl)
     
 
