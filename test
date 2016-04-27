@@ -13,8 +13,8 @@ from GoogleScraper import scrape_with_config, GoogleSearchError
 import collections
 
 # Input Excel formula
-#formula = input("\nFunction: ")
-formula = '=INDEX(A1:Z10,MATCH("product",A1:A10,0),MATCH("month",A1:Z1,0))'
+formula = input("\nFunction: ")
+#formula = '=INDEX(A1:Z10,MATCH("product",A1:A10,0),MATCH("month",A1:Z1,0))'
 
 # Split by and keep any non-alphanumeric delimiter, filter blanks
 dlformula = list(filter(None, re.split('([^\\w.\"\:])', formula)))
@@ -51,84 +51,69 @@ for f in dlformula:
 
 wcf = ''.join(wc)+"*"
 
-print(wcf)
-
-"""
-### Test ###
-
-tempurl = "http://www.deskbright.com/excel/using-index-match-match/"
-
-tm = '=INDEX(B2:D7, MATCH(G2, B2:B7, 0), MATCH(G3, B2:D2, 0)Output: 456'
-
-###########
-
-
-r = requests.get(tempurl)
-soup = BeautifulSoup(r.content, "html.parser")
-
-matches = collections.defaultdict(int)
-
-def find_elements(el):    
-    for p in (soup.find_all(el)):
-        if(all(x in p.getText() for x in tfunction)):
-            matches[el] += 1 
-            #print(p.getText())
-
-elements = ['pre', 'p', 'ul']         
-for e in elements:
-    find_elements(e)
-"""
+print('\nSearching for substituted formula:\n%s' % wcf)
 
 #### Scrape google for top hits ####
 
 config = {
     'use_own_ip': 'True',
     'keyword': ("%s excel formula -youtube") % wcf,
-    'search_engines': ['google'],
+    'search_engines': ['duckduckgo'],
     'num_pages_for_keyword': 1,
-    'scrape_method': 'http',
+    'scrape_method': 'http-async',
     'do_caching': 'True',
     'print_results': 'summarize'
 }
 
 urls = [] # List of result URLs
 
+# Begin scraping
 try:
     search = scrape_with_config(config)
+
 except GoogleSearchError as e:
     pass
 
-# Results
-
+maxresults = 6
+r = 0
+# Results - append URL for each hit to urls list
 for serp in search.serps:
     for link in serp.links:
-        urls.append(link.link)
+        if(r < maxresults):
+            urls.append(link.link)
+            r += 1
         
 #### Parse into BS4 ####
 
-
-
+# This dict will be used to store each hit with an id as key
+# and chosen web element, its URL, and a total score (sum of found elements)
 ranking = collections.defaultdict(dict)
-sub = collections.defaultdict(dict)
 
-def find_elements(el):    
-        for p in (soup.find_all(el)):
+# Web elements to look for
+elements = ['pre', 'p', 'ul']
+
+# Searches a web page for an element, stores matches in dict
+def find_elements(element):
+        for p in (soup.find_all(element)):
             if(all(x in p.getText() for x in tfunction)):
-                matches[el] += 1
-                #print(p.getText())
+                matches[element] += 1
 
-webid = 0
+webid = 0 
 
 for url in urls:
-    webid += 1
-    matches = collections.defaultdict(int)    
-    
+    webid += 1 # Gives an id to each web hit
+    matches = collections.defaultdict(int) # New dict for each url
+
     r = requests.get(url)
-    soup = BeautifulSoup(r.content, "html.parser")
-    elements = ['pre', 'p', 'ul']         
+    soup = BeautifulSoup(r.content, "html.parser") # Parses the page
+
+    # Iterate through each chosen element, which are counted
+    # using the find_elements function
     for e in elements:
         find_elements(e)
     
+    ## tbd: Move to later stage ?
+   
     try:
         stitle = soup.title.string
     except:
@@ -136,12 +121,70 @@ for url in urls:
  
     print('\nFound matches in "%s".\n \
     URL: %s' % (stitle,url))
+
+    ##
     
-    ranking[webid] = #(matches.items(),url)
+    # Adds each element an its number of matches to ranking dict
+    # Also adds the URL for reference
+    ranking[webid] = (matches)
+    ranking[webid]['url'] = (url)
+
+tophiturl = ''
+
+# Sums total count of elements per web hit into a score
+# This score will used in decided which page is more likely
+# to contain useful data
+for k,v in ranking.items():
+    score = 0
+    for e in elements:
+        score += v[e]
+        ranking[k]['xscore'] = (score)
+
+# Now, the ranking dict should look something like this:
+
+# defaultdict(dict,
+#             {1: defaultdict(int,
+#                          {'p': 0,
+#                           'pre': 0,
+#                           'ul': 0,
+#                           'url': 'http://www.example_url_1.com/',
+#                           'xscore': 0}),
+#              2: defaultdict(int,
+#                          {'p': 1,
+#                           'pre': 5,
+#                           'ul': 0,
+#                           'url': 'http://www.example_url_2.com/',
+#                           'xscore': 6}),
+#                           ...
+
+
+curmax = 0
+tophiturl = ''
+for k,v in ranking.items():
+    if v['xscore'] > curmax:
+        curmax = v['xscore']
+        tophiturl = v['url']
     
-    #for k,v in matches.items():
-    #    print(k,v)
+print('\nSelected web page: %s' % tophiturl)
+print('\n')
+
+# tbd: Browse selected wp, look for interesting portion p, add p-1, p to list.
+#      Substitute variables with original input variables oip
+#      Search p-1, for variables and replace with corresponding oip
+
+def get_data(url):
+    r = requests.get(url)
+    soup = BeautifulSoup(r.content, "html.parser") # Parses the page
+ #   for element in elements:
+    for p in (soup.find_all('ul')):
+        if(all(x in p.getText() for x in tfunction)):
+            print(p.getText())
+            
     
+get_data(tophiturl)
+    
+
+"""   
 for x in ranking.values():
     try:
         for k,v in x.items():
@@ -152,7 +195,7 @@ for x in ranking.values():
 
 ####
 
-
+"""
 """
 
 ### TEMP TEMP TEMP TEMP
